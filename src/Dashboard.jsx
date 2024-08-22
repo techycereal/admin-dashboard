@@ -1,45 +1,20 @@
 // src/Dashboard.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, LinearProgress, Table, TableBody, TableCell, TableHead, TableRow, Box } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { ThumbUp, ThumbDown } from '@mui/icons-material';
+import customDataProvider from './dataProvider'; // Ensure this is correctly imported
 
-// Sample data
-const financialData = [
-  { month: 'January', revenue: 12000, expenses: 8000, profit: 4000 },
-  { month: 'February', revenue: 15000, expenses: 9000, profit: 6000 },
-  { month: 'March', revenue: 14000, expenses: 8500, profit: 5500 },
-  { month: 'April', revenue: 16000, expenses: 9500, profit: 6500 },
-  { month: 'May', revenue: 15500, expenses: 9200, profit: 6300 },
-  { month: 'June', revenue: 17000, expenses: 9800, profit: 7200 },
-];
-
-const revenueData = [
-  { month: 'January', revenue: '$12,000' },
-  { month: 'February', revenue: '$15,000' },
-  { month: 'March', revenue: '$14,000' },
-  { month: 'April', revenue: '$16,000' },
-  { month: 'May', revenue: '$15,500' },
-  { month: 'June', revenue: '$17,000' },
-];
-
-const salesData = [
-  { month: 'Jan', sales: 2000 },
-  { month: 'Feb', sales: 2500 },
-  { month: 'Mar', sales: 2200 },
-  { month: 'Apr', sales: 2700 },
-  { month: 'May', sales: 2600 },
-  { month: 'Jun', sales: 2900 },
-];
-
-const customerData = [
-  { month: 'Jan', newCustomers: 100, churned: 5 },
-  { month: 'Feb', newCustomers: 120, churned: 8 },
-  { month: 'Mar', newCustomers: 110, churned: 6 },
-  { month: 'Apr', newCustomers: 130, churned: 7 },
-  { month: 'May', newCustomers: 140, churned: 9 },
-  { month: 'Jun', newCustomers: 150, churned: 10 },
-];
+// Mock data fetching function
+const fetchData = async (resource) => {
+  try {
+    const response = await customDataProvider.getList(resource, {});
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching ${resource} data`, error);
+    return [];
+  }
+};
 
 function KPIIndicator({ metric, target, current }) {
   const isOnTrack = current >= target;
@@ -53,18 +28,45 @@ function KPIIndicator({ metric, target, current }) {
 }
 
 function Dashboard() {
+  const [financialData, setFinancialData] = useState([]);
+  const [metricsData, setMetricsData] = useState([]);
+
+  useEffect(() => {
+    const fetchDataAsync = async () => {
+      const financials = await fetchData('financials');
+      const metrics = await fetchData('metrics');
+      setFinancialData(financials);
+      setMetricsData(metrics);
+    };
+
+    fetchDataAsync();
+  }, []);
+
+  // Limited number of users
+  const totalUsers = 10;
+  
+  // Calculate total values from financialData
+  const totalRevenue = financialData.reduce((acc, { revenue }) => acc + revenue, 0);
+  const totalExpenses = financialData.reduce((acc, { expenses }) => acc + expenses, 0);
+  const totalProfit = financialData.reduce((acc, { profit }) => acc + profit, 0);
+
+  // Fetch metrics or use placeholders if necessary
+  const arpu = metricsData.find(metric => metric.metricName === 'ARPU')?.value || 0;
+  const mrr = metricsData.find(metric => metric.metricName === 'MRR')?.value || 0;
+
+  // Update metric values
   const metrics = {
-    totalUsers: 1200,
-    activeUsers: 850,
-    revenue: "$45,000",
-    newUsers: 120,
-    churnRate: "2.5%",
-    customerSatisfaction: "89%",
-    mrr: "$12,000",
-    arpu: "$10.00",
-    totalSales: "$30,000",
-    averageOrderValue: "$150",
-    conversionRate: "4.2%",
+    totalUsers,
+    activeUsers: totalUsers,
+    revenue: `$${totalRevenue.toLocaleString()}`,
+    newUsers: totalUsers,
+    churnRate: '0%', // Placeholder as example
+    customerSatisfaction: '89%', // Example value
+    mrr: `$${mrr.toLocaleString()}`,
+    arpu: `$${arpu.toFixed(2)}`,
+    totalSales: `$${totalRevenue.toLocaleString()}`, // Placeholder for totalSales
+    averageOrderValue: '$150', // Example value
+    conversionRate: '4.2%', // Example value
   };
 
   return (
@@ -101,13 +103,13 @@ function Dashboard() {
         <CardContent>
           <Typography variant="h5">Sales Data Over Time</Typography>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={salesData}>
+            <BarChart data={financialData}> {/* Placeholder for actual sales data */}
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="sales" fill="#82ca9d" />
+              <Bar dataKey="revenue" fill="#82ca9d" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -118,14 +120,14 @@ function Dashboard() {
         <CardContent>
           <Typography variant="h5">Customer Growth and Churn</Typography>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={customerData}>
+            <AreaChart data={financialData}> {/* Placeholder for actual customer data */}
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="newCustomers" stroke="#8884d8" fill="#8884d8" />
-              <Area type="monotone" dataKey="churned" stroke="#ff7300" fill="#ff7300" />
+              <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
+              <Area type="monotone" dataKey="expenses" stroke="#ff7300" fill="#ff7300" />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -145,8 +147,8 @@ function Dashboard() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {financialData.map((row, index) => (
-                <TableRow key={index}>
+              {financialData.map((row) => (
+                <TableRow key={row.id}>
                   <TableCell>{row.month}</TableCell>
                   <TableCell>${row.revenue.toLocaleString()}</TableCell>
                   <TableCell>${row.expenses.toLocaleString()}</TableCell>
@@ -164,8 +166,8 @@ function Dashboard() {
           <Typography variant="h5">Revenue Target Progress</Typography>
           <Box>
             <Typography variant="h6">Current Revenue</Typography>
-            <LinearProgress variant="determinate" value={(12000 / 15000) * 100} />
-            <Typography variant="body2">$12,000 / $15,000</Typography>
+            <LinearProgress variant="determinate" value={(totalRevenue / 15000) * 100} />
+            <Typography variant="body2">${totalRevenue.toLocaleString()} / $15,000</Typography>
           </Box>
         </CardContent>
       </Card>
@@ -173,17 +175,17 @@ function Dashboard() {
       {/* KPI Indicators */}
       <Card style={{ width: 300 }}>
         <CardContent>
-          <KPIIndicator metric="MRR Target" target={15000} current={12000} />
+          <KPIIndicator metric="MRR Target" target={15000} current={mrr} />
         </CardContent>
       </Card>
       <Card style={{ width: 300 }}>
         <CardContent>
-          <KPIIndicator metric="Sales Target" target={35000} current={30000} />
+          <KPIIndicator metric="Sales Target" target={35000} current={totalRevenue} /> {/* Placeholder */}
         </CardContent>
       </Card>
       <Card style={{ width: 300 }}>
         <CardContent>
-          <KPIIndicator metric="Customer Satisfaction" target={90} current={91} />
+          <KPIIndicator metric="Customer Satisfaction" target={90} current={91} /> {/* Placeholder */}
         </CardContent>
       </Card>
     </div>
